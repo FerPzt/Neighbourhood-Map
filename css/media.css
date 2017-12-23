@@ -1,0 +1,33 @@
+@media screen and (max-width: 730px) {
+  .openNav {
+    width: 100%;
+  }
+
+  .slideMap {
+    margin-left: 100%;
+  }
+}
+
+@media screen and (max-height: 815px) {
+  #map {
+    height: 92%;
+  }
+}
+
+@media screen and (max-height: 380px) {
+  .navbar {
+    height: 15%;
+  }
+  #map {
+    height: 85%;
+  }
+  .search {
+    width: 70%;
+  }
+}
+
+@media screen and (max-width: 370px) {
+  .title {
+    font-size: 0.75em;
+  }
+}
