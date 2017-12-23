@@ -4,8 +4,9 @@ This is a project from Udacity Front End Nanodegree, for studying purposes.
 
 #### To open the map:
 * Download this git repository to your computer
-* Execute `bower install` on your terminal to install some dependencies (if you don't have, you can follow the instructions on https://bower.io/)
-* Run a local server on this folder on a 8080 port (e.g. `http-server .`)
+* Open your terminal and navigate to the downloaded folder
+* Execute `bower install` to install the dependencies (if you don't have it, you can follow the instructions on https://bower.io/)
+* Run a local server on a 8080 port (e.g. `http-server .`)
 * On your browser, go to the page: http://localhost:8080
 
 #### Usage:
