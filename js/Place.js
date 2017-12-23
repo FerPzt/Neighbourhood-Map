@@ -14,7 +14,9 @@ class Place {
   getAddress() { return this.address; }
 }
 
-// Initialize the saves places
+// Global variables
+let map = null;
+// Initialize the pre-defined places
 let savedPlaces = [
   new Place(1, {lat: 49.211614, lng: -122.9017922}, "Queens Park"),
   new Place(2, {lat: 49.2227246, lng: -122.9041998}, "Canada Games Pool"),
@@ -22,11 +24,15 @@ let savedPlaces = [
   new Place(4, {lat: 49.2101458, lng: -122.9331274}, "Royal City Centre"),
   new Place(5, {lat: 49.2295749, lng: -122.9047291}, "Choices Markets")
 ];
+// Save the latest opened info window
 let lastOpenedInfoWindow = null;
-let map = null;
+// Save the markers to use it on the sidebar
 let markers = {};
 
+// Get the HTML content for a place on the map
+// We need to pass the callback function as an argument
 function getContent(title, places, cb) {
+  // If we don't have enough information about this place, return a simple version
   if (places.length == 0 || !places.venues || places.venues.length == 0) {
     let content = '<div id="content">' +
        '<p><span class="title">' + title + '</span></p>' +
@@ -37,6 +43,7 @@ function getContent(title, places, cb) {
   }
   const place = places.venues[0];
 
+  // Make another call to foursquare api to get some additional information
   let additionalUrl = "https://api.foursquare.com/v2/venues/" + place.id + "/links?" +
                  "&client_id=RVOE5UR0Q3PG1UTK3ZJF2PVCGHNLZFDHBF2JQGRJHXEUWFTF&" +
                  "client_secret=F4A5013FMVDSK2ZWV2UFWJ034SZ1F0XLVN5X1FZVZPHVNMC3" +
@@ -47,6 +54,7 @@ function getContent(title, places, cb) {
     cache: false,
     url: additionalUrl,
     success: function(data) {
+      // With all the information, we can properly generate the content
       let links = "<ul class='links'>";
       let n = 0;
       data.response.links.items.forEach(function(link) {
@@ -65,8 +73,6 @@ function getContent(title, places, cb) {
       } else {
         content += '</span></p>';
       }
-
-
       if (place.contact.formattedPhone) {
         content += '<p><span class="contact">' + place.contact.formattedPhone + '</span></p>';
       }
@@ -75,15 +81,15 @@ function getContent(title, places, cb) {
         content += '<p>Useful Links:<br />' + links + "</p>";
       }
       content += '</div>';
-
+      // Call the callback function with the content
       cb(content);
     }
   });
 }
 
+// Callback to handle when a place is selected
 function handleSelectPlace() {
   if (!map) return;
-
   if (this.getAnimation() !== null) {
     this.setAnimation(null);
   } else {
@@ -92,13 +98,16 @@ function handleSelectPlace() {
       m.setAnimation(null);
     }, 1400, this);
   }
+  // If there's an opened window, we need to close it before open another one
   if (lastOpenedInfoWindow) {
     lastOpenedInfoWindow.close();
   }
+  // Open the content window for the place and save it
   this.info.open(map, this);
   lastOpenedInfoWindow = this.info;
 }
 
+// Add a marker into the map
 function addMarker(position, title, cb) {
   let marker = new google.maps.Marker({
     position: position,
@@ -107,6 +116,7 @@ function addMarker(position, title, cb) {
     title: title
   });
 
+  // Make a call to the foursquare api to get places into this location
   let requestUrl = "https://api.foursquare.com/v2/venues/search?ll=" + position.lat + "," + position.lng +
                    "&client_id=RVOE5UR0Q3PG1UTK3ZJF2PVCGHNLZFDHBF2JQGRJHXEUWFTF&" +
                    "client_secret=F4A5013FMVDSK2ZWV2UFWJ034SZ1F0XLVN5X1FZVZPHVNMC3" +
@@ -129,6 +139,7 @@ function addMarker(position, title, cb) {
   });
 }
 
+// Populate the map with the saved places array
 function populateMap(_map) {
   savedPlaces.forEach(function(place) {
     addMarker(place.getPosition(), place.getTitle(), function(marker) {
@@ -137,20 +148,20 @@ function populateMap(_map) {
   });
 }
 
-// Create a View Model for the places
+// View Model for the saved places
+// This is used for the knockback framework, to fill and filter the list of places
 function SavedPlacesViewModel() {
   var self = this;
 
   self.places = ko.observableArray(savedPlaces);
   self.query = ko.observable('');
-
   self.filterPlaces = ko.computed(function() {
     const search = self.query().toLowerCase();
     return ko.utils.arrayFilter(self.places(), function(place) {
       return place.getTitle().toLowerCase().indexOf(search) >= 0;
     });
   });
-
+  // Handle when select a place into the list
   self.selectPlace = function(place) {
     const marker = markers[place.getId()];
     new google.maps.event.trigger( marker, 'click' );
@@ -158,16 +169,19 @@ function SavedPlacesViewModel() {
       closeNav();
     }
   }
-
+  // Subscribe to the query variable, this way we can handle when the variable changes.
   self.query.subscribe(function(newValue) {
     if (lastOpenedInfoWindow) {
       lastOpenedInfoWindow.close();
     }
+    // Iterate over the saved places to find the one that we're searching
     savedPlaces.forEach(function(place) {
       const marker = markers[place.getId()];
       if (place.getTitle().toLowerCase().indexOf(newValue.toLowerCase()) >= 0) {
+        // The place is part of the search, we can show it on the map
         marker.setMap(map);
       } else {
+        // The place is not part of the search, hidding the place on the map
         marker.setMap(null);
       }
     });

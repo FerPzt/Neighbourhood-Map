@@ -1,5 +1,5 @@
 
-
+// Initialize the map with a pre-defined ceter
 function initMap() {
     const initPos = {lat: 49.2155955, lng: -122.9000755};
 
@@ -8,7 +8,6 @@ function initMap() {
     zoom: screen.width <= 730? 13 : 14,
     center: initPos
   });
-
   populateMap(map);
 }
 
