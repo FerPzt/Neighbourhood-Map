@@ -18,6 +18,11 @@ body {
   height: 90%;
 }
 
+.notFound {
+  color: #F6F6F6;
+  margin-left: 5%;
+}
+
 .navbar-brand {
   padding-left: 30px;
 }

@@ -16,6 +16,7 @@
       <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
       <input placeholder="Filter places" class="search form-control" type="search" data-bind="value: query, valueUpdate: 'keyup'" autocomplete="off">
       <hr  />
+      <div class="notFound" data-bind="if: filterPlaces().length == 0">No places found for the search</div>
       <div data-bind="template: {name:'place', foreach: filterPlaces}">
       </div>
     </div>

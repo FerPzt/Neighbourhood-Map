@@ -29,20 +29,26 @@ let lastOpenedInfoWindow = null;
 // Save the markers to use it on the sidebar
 let markers = {};
 
+function generateFailedContent(title) {
+  let content = '<div id="content">' +
+     '<p><span class="title">' + title + '</span></p>' +
+     '<p><span class="address">No information available</span></p>'+
+     '</div>';
+     return content;
+}
+
 // Get the HTML content for a place on the map
 // We need to pass the callback function as an argument
-function getContent(title, places, cb) {
+function getContent(title, data, cb) {
+  const places = data.response;
   // If we don't have enough information about this place, return a simple version
-  if (places.length == 0 || !places.venues || places.venues.length == 0) {
-    let content = '<div id="content">' +
-       '<p><span class="title">' + title + '</span></p>' +
-       '<p><span class="address">No information available</span></p>'+
-       '</div>';
-    cb(content);
+  if (data.meta.code != 200 || places.length == 0 || !places.venues || places.venues.length == 0) {
+    console.log("Error to get content from foursquare API - Status: " + data.meta.code + ", Message: " + data.meta.errorDetail);
+    cb(generateFailedContent(title));
     return;
   }
-  const place = places.venues[0];
 
+  const place = places.venues[0];
   // Make another call to foursquare api to get some additional information
   let additionalUrl = "https://api.foursquare.com/v2/venues/" + place.id + "/links?" +
                  "&client_id=RVOE5UR0Q3PG1UTK3ZJF2PVCGHNLZFDHBF2JQGRJHXEUWFTF&" +
@@ -52,38 +58,46 @@ function getContent(title, places, cb) {
     type: "GET",
     dataType: "jsonp",
     cache: false,
-    url: additionalUrl,
-    success: function(data) {
-      // With all the information, we can properly generate the content
-      let links = "<ul class='links'>";
-      let n = 0;
-      data.response.links.items.forEach(function(link) {
-        if (link.url) {
-          links += "<li><a href='" + link.url + "' target='_blank'>" + link.provider.id + "</a></li>";
-          n++;
-        }
-      });
-      links += "</ul>";
-      let content = '<div id="content">' +
-             '<p><span class="title">' + title + '</span></p>' +
-             '<p><span class="address">' + place.location.formattedAddress[0];
-
-      if (place.location.formattedAddress.length > 1) {
-        content += ', ' + place.location.formattedAddress[1] + '</span></p>';
-      } else {
-        content += '</span></p>';
-      }
-      if (place.contact.formattedPhone) {
-        content += '<p><span class="contact">' + place.contact.formattedPhone + '</span></p>';
-      }
-      content += '<p><span class="stats">Number of check-ins: <b>' + place.stats.checkinsCount + '</b></span></p>';
-      if (n > 0) {
-        content += '<p>Useful Links:<br />' + links + "</p>";
-      }
-      content += '</div>';
-      // Call the callback function with the content
-      cb(content);
+    url: additionalUrl
+  })
+  .done(function(data) {
+    if (data.meta.code != 200) {
+      console.log("Error to get content from foursquare API - Status: " + data.meta.code + ", Message: " + data.meta.errorDetail);
+      cb(generateFailedContent(title));
+      return;
     }
+    // With all the information, we can properly generate the content
+    let content = '<div id="content"><p><span class="title">' + title + '</span></p>';
+    let links = "<ul class='links'>";
+    let n = 0;
+    data.response.links.items.forEach(function(link) {
+      if (link.url) {
+        links += "<li><a href='" + link.url + "' target='_blank'>" + link.provider.id + "</a></li>";
+        n++;
+      }
+    });
+    links += "</ul>";
+    content += '<p><span class="address">' + place.location.formattedAddress[0];
+
+    if (place.location.formattedAddress.length > 1) {
+      content += ', ' + place.location.formattedAddress[1] + '</span></p>';
+    } else {
+      content += '</span></p>';
+    }
+    if (place.contact.formattedPhone) {
+      content += '<p><span class="contact">' + place.contact.formattedPhone + '</span></p>';
+    }
+    content += '<p><span class="stats">Number of check-ins: <b>' + place.stats.checkinsCount + '</b></span></p>';
+    if (n > 0) {
+      content += '<p>Useful Links:<br />' + links + "</p>";
+    }
+    content += '</div>';
+    // Call the callback function with the content
+    cb(content);
+  })
+  .fail(function(err, msg) {
+    console.log("Error to get content from foursquare API - Status: " + err.status + ", Message: " + err.statusText);
+    cb(generateFailedContent(title));
   });
 }
 
@@ -126,16 +140,20 @@ function addMarker(position, title, cb) {
     type: "GET",
     dataType: "jsonp",
     cache: false,
-    url: requestUrl,
-    success: function(data) {
-      getContent(title, data.response, function(content) {
-        marker.info = new google.maps.InfoWindow({
-          content: content
-        });
-        google.maps.event.addListener(marker, 'click', handleSelectPlace);
-        cb(marker);
+    url: requestUrl
+  })
+  .done(function(data) {
+    getContent(title, data, function(content) {
+      marker.info = new google.maps.InfoWindow({
+        content: content
       });
-    }
+      google.maps.event.addListener(marker, 'click', handleSelectPlace);
+      cb(marker);
+    });
+  })
+  .fail(function(err) {
+    console.log("Error to get content from foursquare API - Status: " + err.status + ", Message: " + err.statusText);
+    cb(generateFailedContent(title));
   });
 }
 
